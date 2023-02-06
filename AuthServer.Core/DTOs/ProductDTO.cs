@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AuthServer.Core.Models
+namespace AuthServer.Core.DTOs
 {
-    public class Product
+    public class ProductDTO
     {
         public int Id { get; set; }
         public string? Name { get; set; }
