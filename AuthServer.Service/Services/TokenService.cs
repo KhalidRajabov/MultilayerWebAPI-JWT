@@ -5,14 +5,11 @@ using AuthServer.Core.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Tokens;
 using SharedLibrary.Configurations;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace AuthServer.Service.Services
 {
@@ -40,6 +37,9 @@ namespace AuthServer.Service.Services
             //creates a guid like string combination, better than guid
             return Convert.ToBase64String(numberByte);
         }
+
+
+        //creates token that require registration
         IEnumerable<Claim> GetClaims(UserApp userApp, List<string> audiences) 
         {
             var userList = new List<Claim>
@@ -48,28 +48,78 @@ namespace AuthServer.Service.Services
                 //code below can be written as ~new Claim("email", userApp.Email)~
                 //because first parameter is always a string.
                 //so ~JwtRegisteredClaimNames.Email~ is equal to "email" string
-                new Claim(JwtRegisteredClaimNames.Email, userApp.Email),
+                new Claim(Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames.Email, userApp.Email),
 
                 //but claimtypes are important for something like "Roles", because ClaimTypes.Role lets
                 //system understand that you are checking the user's role, not email or other things
                 new Claim(ClaimTypes.Name, userApp.UserName),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                new Claim(Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
             //creates a claim for each of list<string>audiences before sending to api
             //api checks whether or not the request has right to request
-            userList.AddRange(audiences.Select(x => new Claim(JwtRegisteredClaimNames.Aud, x)));
+            userList.AddRange(audiences.Select(x => new Claim(Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames.Aud, x)));
             return userList;
+        }
+
+
+        //creates token that does not require registry
+        IEnumerable<Claim> GetClaimsByClient(Client? client)
+        {
+            var claims = new List<Claim>();
+            claims.AddRange(client.Audience.Select(x => new Claim(Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames.Aud, x)));
+            new Claim(Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString());
+            new Claim(Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames.Sub, client.Id.ToString());
+            return claims;
         }
 
         public TokenDTO CreateToken(UserApp userApp)
         {
-            return null;
+            var accessTokenExpression = DateTime.Now.AddMinutes(_customTokenOptions.AccessTokenExpiration);
+            var refreshTokenExpression = DateTime.Now.AddMinutes(_customTokenOptions.RefreshTokenExpiration);
+            var securityKey = SignService.GetSymmetricSecurityKey(_customTokenOptions.SecurityKey);
+            SigningCredentials signingCredentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256Signature);
+            JwtSecurityToken jwtSecurityToken = new JwtSecurityToken(
+                issuer: _customTokenOptions.Issuer,
+                expires: accessTokenExpression,
+                notBefore: DateTime.Now,
+                claims: GetClaims(userApp, _customTokenOptions.Audience),
+                signingCredentials: signingCredentials
+                );
+
+            var handler = new JwtSecurityTokenHandler();
+            var accessToken = handler.WriteToken(jwtSecurityToken);
+            var tokenDto = new TokenDTO
+            {
+                AccessToken = accessToken,
+                RefreshToken = CreateRefreshToken(),
+                AccessTokenExpiration = accessTokenExpression,
+                RefreshTokenExpiration = refreshTokenExpression,
+            };
+            return tokenDto;
         }
 
         public ClientTokenDTO CreateTokenByClient(Client client)
         {
-            return null;
+            var accessTokenExpression = DateTime.Now.AddMinutes(_customTokenOptions.AccessTokenExpiration);
+            var securityKey = SignService.GetSymmetricSecurityKey(_customTokenOptions.SecurityKey);
+            SigningCredentials signingCredentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256Signature);
+            JwtSecurityToken jwtSecurityToken = new JwtSecurityToken(
+                issuer: _customTokenOptions.Issuer,
+                expires: accessTokenExpression,
+                notBefore: DateTime.Now,
+                claims: GetClaimsByClient(client),
+                signingCredentials: signingCredentials
+                );
+
+            var handler = new JwtSecurityTokenHandler();
+            var accessToken = handler.WriteToken(jwtSecurityToken);
+            var tokenDto = new ClientTokenDTO
+            {
+                AccessToken = accessToken,
+                AccessTokenExpiration = accessTokenExpression,
+            };
+            return tokenDto;
         }
     }
 }
