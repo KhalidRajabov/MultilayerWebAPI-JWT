@@ -8,14 +8,10 @@ namespace SharedLibrary.DTOs
 {
     public class ErrorDTO
     {
-        public List<String>? Errors { get; private set; }
+        public List<String>? Errors { get; private set; }=new List<string>() { };
         public bool IsShown { get; private set; }
 
-        public ErrorDTO()
-        {
-            Errors = new List<String>();
-        }
-
+      
         public ErrorDTO(string? error, bool isShown)
         {
             Errors?.Add(error);
@@ -24,7 +20,7 @@ namespace SharedLibrary.DTOs
 
         public ErrorDTO(List<string>? errors, bool isShown)
         {
-            Errors = Errors;
+            Errors = errors;
             IsShown = isShown;
         }
     }

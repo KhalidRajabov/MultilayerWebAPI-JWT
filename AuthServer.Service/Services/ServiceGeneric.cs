@@ -75,10 +75,11 @@ namespace AuthServer.Service.Services
             }
 
             var updateEntity = ObjectMapper.Mapper.Map<TEntity>(dto);
+            _genericRepository.Update(updateEntity);
             await _unitOfWork.CommitAsync();
 
             //204 stands for "No content", means body of response will not have data
-            return Response<NoDataDTO>.Success(204);
+            return Response<NoDataDTO>.Success(200);
         }
 
         public async Task<Response<IEnumerable<TDTO>>> Where(Expression<Func<TEntity, bool>> predicate)

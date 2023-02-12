@@ -78,7 +78,7 @@ namespace AuthServer.Service.Services
             existRefreshToken.Code = token.RefreshToken;
             existRefreshToken.Expiration = token.RefreshTokenExpiration;
             await _unitOfWork.CommitAsync();
-            return Response<TokenDTO>.Success(200);
+            return Response<TokenDTO>.Success(token,200);
         }
 
         public async Task<Response<NoDataDTO>> RevokeRefreshToken(string refreshToken)
