@@ -3,6 +3,7 @@ using AuthServer.Core.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using SharedLibrary.Exceptions;
 
 namespace PresentationAPI.Controllers
 {
@@ -21,6 +22,7 @@ namespace PresentationAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateUser(CreateUserDTO createUserDTO)
         {
+            throw new CustomException("test related simple error");
             return ActionResultInstance(await _userService.CreateUserAsync(createUserDTO));
         }
 
