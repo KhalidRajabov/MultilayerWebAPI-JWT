@@ -84,8 +84,11 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
-}
+    //if app is not in development anymore, exception will be customized exception
+    //and when this middleware works, others will not even start which is light operation
+    //prevents doing useless loads
     app.UseCustomException();
+}
 
 app.UseHttpsRedirection();
 app.UseRouting();
